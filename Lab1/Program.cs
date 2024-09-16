@@ -93,19 +93,19 @@
         
         while (!fileB.EndOfStream && !fileC.EndOfStream)
         {
-            int numB = int.Parse(fileB.ReadLine());
-            int numC = int.Parse(fileC.ReadLine());
+            string numB = fileB.ReadLine();
+            string numC = fileC.ReadLine();
             int bCounter = 0, cCounter = 0;
 
-            while (bCounter < blockSize && cCounter < blockSize && !fileB.EndOfStream && !fileC.EndOfStream)
+            while (bCounter < blockSize && cCounter < blockSize && numB != null && numC != null)
             {
-                if (numB <= numC)
+                if (int.Parse(numB) <= int.Parse(numC))
                 {
                     fileA.WriteLine(numB);
                     bCounter++;
                     if (bCounter < blockSize)
                     {
-                        numB = int.Parse(fileB.ReadLine());
+                        numB = fileB.ReadLine();
                     }
                 }
                 else
@@ -114,28 +114,28 @@
                     cCounter++;
                     if (cCounter < blockSize)
                     {
-                        numC = int.Parse(fileC.ReadLine());
+                        numC = fileC.ReadLine();
                     }
                 }
             }
 
-            while (bCounter < blockSize && !fileB.EndOfStream)
+            while (bCounter < blockSize && numB != null)
             {
                 fileA.WriteLine(numB);
                 bCounter++;
                 if (bCounter < blockSize)
                 {
-                    numB = int.Parse(fileB.ReadLine());
+                    numB = fileB.ReadLine();
                 }
             }
 
-            while (cCounter < blockSize && !fileC.EndOfStream)
+            while (cCounter < blockSize && numC != null)
             {
                 fileA.WriteLine(numC);
                 cCounter++;
                 if (cCounter < blockSize)
                 {
-                    numC = int.Parse(fileC.ReadLine());
+                    numC = fileC.ReadLine();
                 }
             }
         }
