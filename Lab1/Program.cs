@@ -9,65 +9,39 @@ class Program
     {
         Stopwatch watch = new Stopwatch();
         watch.Start();
-        SortFile(args[0]);
+        SortFileNew(args[0], 6);
         watch.Stop();
-        Console.WriteLine(watch.ElapsedMilliseconds / 1000.0 + " seconds");
+        Console.WriteLine("M = 6: " + watch.ElapsedMilliseconds / 1000.0 + " seconds");
     }
 
-    static void SortFile(string inFileName)
+    static void Preprocess(string inFileName)
     {
-        int totalSeries = CountSeries(inFileName);
+        File.WriteAllText("tmp.txt", "");
+        StreamReader inFile = new StreamReader(inFileName);
+        StreamWriter outFile = new StreamWriter("tmp.txt");
 
-        // Normalize number of series (Find next closest fib num, bring total num to it)
-        int prevFib, closestFib;
-        (prevFib, closestFib) = FindClosestFib(totalSeries);
-
-        int cleanupFirst, cleanupSecond, amount;
-        (cleanupFirst, cleanupSecond, amount)= AddSeries(closestFib - totalSeries, inFileName);
-
-        // Divide series into helper files
-        DivideSeries(prevFib);
-
-        // Merge series until total number is equal to one
-        int[] series = { prevFib, closestFib - prevFib, 0 };
-        string[] fileNames = { "B1.txt", "B2.txt", "B3.txt" };
-        File.WriteAllText(fileNames[2], "");
-        while (totalSeries != 1)
+        while (!inFile.EndOfStream)
         {
-            int inIdx1 = 0, inIdx2 = 0, outIdx = 0;
-            for (int i = 0; i < series.Length; i++)
-            {
-                if (series[i] == 0)
-                {
-                    outIdx = i;
-                }
+            int n = 10000000;
+            List<int> arr = new List<int>();
 
-                if (series[i] > series[inIdx1])
-                {
-                    inIdx1 = i;
-                }
+            for (int i = 0; i < n && !inFile.EndOfStream; i++)
+            {
+                int num = int.Parse(inFile.ReadLine());
+                arr.Add(num);
             }
-            inIdx2 = (series.Length * (series.Length - 1) / 2) - inIdx1 - outIdx;
 
-            MergeSeries(fileNames[inIdx1], fileNames[inIdx2], fileNames[outIdx]);
-
-            series[outIdx] = series[inIdx2];
-            series[inIdx1] -= series[inIdx2];
-            series[inIdx2] = 0;
-            totalSeries = series[0] + series[1] + series[2];
-        }
-
-
-        // Clean up added series
-        int idx = -1;
-        for (int i = 0; i < series.Length; i++)
-        {
-            if (series[i] == 1)
+            arr.Sort();
+            foreach (int num in arr)
             {
-                idx = i;
+                outFile.WriteLine(num);
             }
         }
-        CleanUp(cleanupFirst, cleanupSecond, amount, fileNames[idx]);
+
+        inFile.Close();
+        outFile.Close();
+        File.Delete(inFileName);
+        File.Move("tmp.txt", inFileName);
     }
 
     static int CountSeries(string inFileName)
@@ -92,165 +66,38 @@ class Program
         return series;
     }
 
-    static (int, int) FindClosestFib(int num)
-    {
-        int fPrev = 0, fCurr = 1;
-
-        while (fCurr < num)
-        {
-            int tmp = fCurr;
-            fCurr += fPrev;
-            fPrev = tmp;
-        }
-
-        return (fPrev, fCurr);
-    }
-
     static (int, int, int) AddSeries(int amount, string inFileName)
     {
-        File.WriteAllText(outFileName, "");
+        File.WriteAllText("tmp.txt", "");
         StreamReader inFile = new StreamReader(inFileName);
-        StreamWriter outFile = new StreamWriter(outFileName);
+        StreamWriter tmp = new StreamWriter("tmp.txt");
 
         int curr = -1;
         while (!inFile.EndOfStream)
         {
             curr = int.Parse(inFile.ReadLine());
-            outFile.WriteLine(curr);
+            tmp.WriteLine(curr);
         }
 
         for (int i = 0; i < amount; i++)
         {
-            outFile.WriteLine(curr - 1);
-            outFile.WriteLine(curr);
+            tmp.WriteLine(curr - 1);
+            tmp.WriteLine(curr);
         }
 
         inFile.Close();
-        outFile.Close();
+        tmp.Close();
+        File.Delete(inFileName);
+        File.Move("tmp.txt", inFileName);
 
         return (curr - 1, curr, amount);
     }
 
-    static void DivideSeries(int B1Series)
-    {
-        File.WriteAllText("B1.txt", "");
-        File.WriteAllText("B2.txt", "");
-        StreamReader outFile = new StreamReader(outFileName);
-        StreamWriter B1 = new StreamWriter("B1.txt");
-        StreamWriter B2 = new StreamWriter("B2.txt");
-
-        int prev = int.MinValue;
-        while (B1Series > 0)
-        {
-            int curr = int.Parse(outFile.ReadLine());
-            if (prev > curr)
-            {
-                B1Series--;
-            }
-            prev = curr;
-            if (B1Series > 0)
-            {
-                B1.WriteLine(curr);
-            }
-        }
-        B2.WriteLine(prev);
-
-        while (!outFile.EndOfStream)
-        {
-            B2.WriteLine(outFile.ReadLine());
-        }
-
-        outFile.Close();
-        B1.Close();
-        B2.Close();
-    }
-
-    static void MergeSeries(string inName1, string inName2, string outName)
-    {
-        File.WriteAllText(outName, "");
-        StreamReader in1 = new StreamReader(inName1);
-        StreamReader in2 = new StreamReader(inName2);
-        StreamWriter outF = new StreamWriter(outName);
-
-        string num1 = in1.ReadLine(), num2 = in2.ReadLine();
-        while (!in2.EndOfStream)
-        {
-            int prev1 = -1, prev2 = -1;
-            bool blockEnded1 = false, blockEnded2 = false;
-
-            while (!(blockEnded1 || blockEnded2))
-            {
-                if (int.Parse(num1) < int.Parse(num2)) 
-                {
-                    outF.WriteLine(num1);
-                    prev1 = int.Parse(num1);
-                    num1 = in1.ReadLine();
-                    if (num1 == null || prev1 > int.Parse(num1))
-                    {
-                        blockEnded1 = true;
-                    }
-                }
-                else
-                {
-                    outF.WriteLine(num2);
-                    prev2 = int.Parse(num2);
-                    num2 = in2.ReadLine();
-                    if (num2 == null || prev2 > int.Parse(num2))
-                    {
-                        blockEnded2 = true;
-                    }
-                }
-            }
-
-            while (!blockEnded1)
-            {
-                outF.WriteLine(num1);
-                prev1 = int.Parse(num1);
-                num1 = in1.ReadLine();
-                if (num1 == null || prev1 > int.Parse(num1))
-                {
-                    blockEnded1 = true;
-                }
-            }
-
-            while (!blockEnded2)
-            {
-                outF.WriteLine(num2);
-                prev2 = int.Parse(num2);
-                num2 = in2.ReadLine();
-                if (num2 == null || prev2 > int.Parse(num2))
-                {
-                    blockEnded2 = true;
-                }
-            }
-        }
-
-        File.WriteAllText("tmp.txt", "");
-        StreamWriter tmp = new StreamWriter("tmp.txt");
-        if (num1 != null)
-        {   
-            tmp.WriteLine(num1);
-            while (!in1.EndOfStream)
-            {
-                tmp.WriteLine(in1.ReadLine());
-            }
-        }
-
-        tmp.Close();
-        in1.Close();
-        in2.Close();
-        outF.Close();
-
-        File.WriteAllText(inName2, "");
-        File.Delete(inName1);
-        File.Move("tmp.txt", inName1); // Rename
-    }
-
     static void CleanUp(int cleanupFirst, int cleanupSecond, int amount, string fileName)
     {
-        File.WriteAllText(outFileName, "");
+        File.WriteAllText("tmp.txt", "");
         StreamReader inFile = new StreamReader(fileName);
-        StreamWriter outFile = new StreamWriter(outFileName);
+        StreamWriter outFile = new StreamWriter("tmp.txt");
 
         int counter1 = amount;
         int counter2 = amount;
@@ -274,134 +121,233 @@ class Program
 
         inFile.Close(); 
         outFile.Close();
+
+        File.Delete(fileName);
+        File.Move("tmp.txt", fileName);
     }
 
-    #region old
-    /*static void SortFile(string inFileName)
-    {
-        int blockSize = 1;
-        int aSize;
+    #region new
 
-        using (StreamReader file = new StreamReader(File.OpenRead(inFileName)))
+    static void SortFileNew(string inFileName, int m)
+    {
+        int series;
+        int total;
+        int[] dist;
+        string[] fileNames = new string[m];
+        int cleanupFirst, cleanupSecond, amount;
+
+        for (int i = 0; i < m; i++)
         {
-            aSize = int.Parse(file.ReadLine());
-            File.WriteAllText("out.txt", "");
-            using (StreamWriter outFile = new StreamWriter(File.OpenWrite("out.txt")))
+            fileNames[i] = String.Concat("B", i + 1, ".txt");
+        }
+
+        CopyData(inFileName, outFileName);
+        Preprocess(outFileName);
+        series = CountSeries(outFileName);
+        (total, dist) = GetSplit(m, series);
+        (cleanupFirst, cleanupSecond, amount) = AddSeries(total - series, outFileName);
+        SplitSeries(outFileName, fileNames, dist);
+
+        int outIdx = m - 1;
+        while (total > 1)
+        {
+            MergeSeriesNew(fileNames, outIdx);
+            outIdx = UpdateDist(ref dist);
+            total = dist.Sum();
+        }
+        CopyData(fileNames[Array.IndexOf(dist, 1)], outFileName);
+        CleanUp(cleanupFirst, cleanupSecond, amount, outFileName);
+    }
+
+    static void CopyData(string inFileName, string outFileName)
+    {
+        File.WriteAllText(outFileName, "");
+        StreamReader inFile = new StreamReader(inFileName);
+        StreamWriter outFile = new StreamWriter(outFileName);
+
+        while (!inFile.EndOfStream) outFile.WriteLine(inFile.ReadLine());
+
+        inFile.Close();
+        outFile.Close();
+    }
+
+    static (int, int[]) GetSplit(int m, int series)
+    {
+        List<int> fi = new List<int>();
+        int[] dist = new int[m];
+
+        dist[0] = 1;
+        for (int i = 0; i < m - 2; i++) fi.Add(0);
+        fi.Add(1);
+
+        int total = 1;
+        while (total < series)
+        {
+            int newFi = fi.Sum();
+            fi.RemoveAt(0);
+            fi.Add(newFi);
+
+            dist[0] = fi[m - 2];
+            for (int i = 1; i < m - 1; i++)
             {
-                outFile.WriteLine(aSize);
-                while (!file.EndOfStream)
+                dist[i] = dist[i - 1] + fi[m - i - 2];
+            }
+
+            total = dist.Sum();
+        }
+        dist[m - 1] = 0;
+
+        return (total, dist);
+    }
+
+    static void SplitSeries(string inFileName, string[] fileNames, int[] dist) // FIX IT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    {
+        int n = dist.Length - 1;
+        StreamReader inFile = new StreamReader(inFileName);
+        string num = inFile.ReadLine();
+
+        File.WriteAllText(fileNames[n], "");
+        for (int i = 0; i < n; i++)
+        {
+            File.WriteAllText(fileNames[i], "");
+            StreamWriter outFile = new StreamWriter(fileNames[i]);
+
+            for (int j = 0; j < dist[i]; j++)
+            {
+                int prev = -1;
+                while (num != null && prev <= int.Parse(num))
                 {
-                    outFile.WriteLine(file.ReadLine());
+                    outFile.WriteLine(num);
+                    prev = int.Parse(num);
+                    num = inFile.ReadLine();
                 }
             }
+
+            outFile.Close();
         }
 
-        while (blockSize < aSize)
-        {
-            Divide(blockSize);
-            Merge(blockSize, aSize);
-            blockSize *= 2;
-        }
-
-        File.Delete("B.txt");
-        File.Delete("C.txt");
+        inFile.Close();
     }
 
-    static void Divide(int blockSize)
+    static void MergeSeriesNew(string[] fileNames, int outIdx) 
     {
-        File.WriteAllText("B.txt", "");
-        File.WriteAllText("C.txt", "");
-
-        StreamReader fileA = new StreamReader(File.OpenRead("out.txt"));
-        StreamWriter fileB = new StreamWriter(File.OpenWrite("B.txt"));
-        StreamWriter fileC = new StreamWriter(File.OpenWrite("C.txt"));
-
-        _ = fileA.ReadLine();
-        bool flag = true;
-        while (!fileA.EndOfStream)
-        {
-            for (int i = 0; i < blockSize && !fileA.EndOfStream; i++)
-            {
-                string num = fileA.ReadLine();
-                if (flag)
-                {
-                    fileB.WriteLine(num); 
-                }
-                else
-                {
-                    fileC.WriteLine(num);
-                }
-            }
-            flag = !flag;
-        }
-
-        fileA.Close();
-        fileB.Close();
-        fileC.Close();
-    }
-
-    static void Merge(int blockSize, int aSize)
-    {
-        StreamWriter fileA = new StreamWriter(File.OpenWrite("out.txt"));
-        StreamReader fileB = new StreamReader(File.OpenRead("B.txt"));
-        StreamReader fileC = new StreamReader(File.OpenRead("C.txt"));
-
-
-        fileA.WriteLine(aSize);
+        int m = fileNames.Length;
+        StreamReader[] inFiles = new StreamReader[m - 1];
+        StreamWriter outFile = null;
+        string[] nums = new string[m - 1];
         
-        while (!fileB.EndOfStream && !fileC.EndOfStream)
+
+        int k = 0;
+        for (int i = 0; i < m; i++)
         {
-            string numB = fileB.ReadLine();
-            string numC = fileC.ReadLine();
-            int bCounter = 0, cCounter = 0;
-
-            while (bCounter < blockSize && cCounter < blockSize && numB != null && numC != null)
+            if (i != outIdx)
             {
-                if (int.Parse(numB) <= int.Parse(numC))
-                {
-                    fileA.WriteLine(numB);
-                    bCounter++;
-                    if (bCounter < blockSize)
-                    {
-                        numB = fileB.ReadLine();
-                    }
-                }
-                else
-                {
-                    fileA.WriteLine(numC);
-                    cCounter++;
-                    if (cCounter < blockSize)
-                    {
-                        numC = fileC.ReadLine();
-                    }
-                }
+                inFiles[k] = new StreamReader(fileNames[i]);
+                nums[k] = inFiles[k].ReadLine();
+                k++;
             }
-
-            while (bCounter < blockSize && numB != null)
+            else 
             {
-                fileA.WriteLine(numB);
-                bCounter++;
-                if (bCounter < blockSize)
-                {
-                    numB = fileB.ReadLine();
-                }
-            }
-
-            while (cCounter < blockSize && numC != null)
-            {
-                fileA.WriteLine(numC);
-                cCounter++;
-                if (cCounter < blockSize)
-                {
-                    numC = fileC.ReadLine();
-                }
+                File.WriteAllText(fileNames[i], "");
+                outFile = new StreamWriter(fileNames[i]);
             }
         }
 
 
-        fileA.Close();
-        fileB.Close();
-        fileC.Close();
-    }*/
+        bool fileEnded = false;
+        while (!fileEnded)
+        {
+            bool[] blockEnded = new bool[m - 1];
+            int[] prev = new int[m - 1];
+            for (int i = 0; i < m - 1; i++)
+            {
+                blockEnded[i] = false;
+                prev[i] = -1;
+            }
+
+
+            int idx = PickNext(nums, blockEnded);
+            while (idx != -1)
+            {
+                outFile.WriteLine(nums[idx]);
+                prev[idx] = int.Parse(nums[idx]);
+                nums[idx] = inFiles[idx].ReadLine();
+                if (nums[idx] == null || prev[idx] > int.Parse(nums[idx]))
+                {
+                    blockEnded[idx] = true;
+                }
+
+                if (nums[idx] == null)
+                {
+                    fileEnded = true;
+                }
+
+                idx = PickNext(nums, blockEnded);
+            }
+        }
+
+        k = 0;
+        for (int i = 0; i < m; i++)
+        {
+            if (i != outIdx)
+            {
+                File.WriteAllText("tmp.txt", "");
+                StreamWriter tmp = new StreamWriter("tmp.txt");
+                if (nums[k] != null)
+                {
+                    tmp.WriteLine(nums[k]);
+                    while (!inFiles[k].EndOfStream) tmp.WriteLine(inFiles[k].ReadLine());
+                }
+                
+
+                tmp.Close();
+                inFiles[k].Close();
+                File.Delete(fileNames[i]);
+                File.Move("tmp.txt", fileNames[i]);
+                k++;
+            }
+        }
+        outFile.Close();
+    }
+
+    // Returns idx of next item in merge or -1 if there isn't such an item
+    static int PickNext(string[] nums, bool[] blockEnded)
+    {
+        int idx = -1;
+        int min = int.MaxValue;
+        for (int i = 0; i < nums.Length; i++)
+        {
+            if (!blockEnded[i] && int.Parse(nums[i]) < min)
+            {
+                min = int.Parse(nums[i]);
+                idx = i;
+            }
+        }
+
+        return idx;
+    }
+
+    static int UpdateDist(ref int[] dist)
+    {
+        int minVal = int.MaxValue;
+        int outIdx = -1;
+
+        for (int i = 0; i < dist.Length; i++) 
+        {
+            if (dist[i] != 0 && dist[i] < minVal)
+            {
+                minVal = dist[i];
+                outIdx = i;
+            }
+        }
+
+        for (int i = 0; i < dist.Length; i++)
+        {
+            if (dist[i] != 0) dist[i] -= minVal;
+            else dist[i] = minVal;
+        }
+
+        return outIdx;
+    }
     #endregion
 }
