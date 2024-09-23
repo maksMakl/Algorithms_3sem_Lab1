@@ -5,13 +5,101 @@ class Program
 {
     private const string outFileName = "out.txt";
 
-    static void Main(string[] args)
+    static int Main(string[] args)
     {
+        if (args.Length != 2)
+        {
+            Console.WriteLine("Usage: {0} <filename> <number of files used in sorting>", Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName));
+            return 1;
+        }
+
+        if (!File.Exists(args[0]))
+        {
+            Console.WriteLine("File {0} doesn't exist", args[0]);
+            return 1;
+        }
+
+        int m;
+        try
+        {
+            m = int.Parse(args[1]);
+        }
+        catch (FormatException)
+        {
+            Console.WriteLine("Usage: {0} <filename> <number of files used in sorting>");
+            return 1;
+        }
+
+        if (m < 3 || m > 8)
+        {
+            Console.WriteLine("Number of files should be between 3 and 8");
+            return 1;
+        }
+
+        if (!IsValid(args[0]))
+        {
+            Console.WriteLine("File contains invalid data");
+            return 1;
+        }
+
         Stopwatch watch = new Stopwatch();
         watch.Start();
-        SortFileNew(args[0], 6);
+        SortFile(args[0], m);
         watch.Stop();
-        Console.WriteLine("M = 6: " + watch.ElapsedMilliseconds / 1000.0 + " seconds");
+        Console.WriteLine(watch.ElapsedMilliseconds / 1000.0 + " seconds");
+
+        return 0;
+    }
+
+    static bool IsValid(string fileName)
+    {
+        StreamReader file = new StreamReader(fileName);
+
+        while (!file.EndOfStream)
+        {
+            try
+            {
+                int.Parse(file.ReadLine());
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
+        file.Close();
+        return true;
+    }
+
+    static void SortFile(string inFileName, int m)
+    {
+        int series;
+        int total;
+        int[] dist;
+        string[] fileNames = new string[m];
+        int cleanupFirst, cleanupSecond, amount;
+
+        for (int i = 0; i < m; i++)
+        {
+            fileNames[i] = String.Concat("B", i + 1, ".txt");
+        }
+
+        CopyData(inFileName, outFileName);
+        Preprocess(outFileName);
+        series = CountSeries(outFileName);
+        (total, dist) = GetSplit(m, series);
+        (cleanupFirst, cleanupSecond, amount) = AddSeries(total - series, outFileName);
+        SplitSeries(outFileName, fileNames, dist);
+
+        int outIdx = m - 1;
+        while (total > 1)
+        {
+            MergeSeries(fileNames, outIdx);
+            outIdx = UpdateDist(ref dist);
+            total = dist.Sum();
+        }
+        CopyData(fileNames[Array.IndexOf(dist, 1)], outFileName);
+        CleanUp(cleanupFirst, cleanupSecond, amount, outFileName);
     }
 
     static void Preprocess(string inFileName)
@@ -126,39 +214,6 @@ class Program
         File.Move("tmp.txt", fileName);
     }
 
-    #region new
-
-    static void SortFileNew(string inFileName, int m)
-    {
-        int series;
-        int total;
-        int[] dist;
-        string[] fileNames = new string[m];
-        int cleanupFirst, cleanupSecond, amount;
-
-        for (int i = 0; i < m; i++)
-        {
-            fileNames[i] = String.Concat("B", i + 1, ".txt");
-        }
-
-        CopyData(inFileName, outFileName);
-        Preprocess(outFileName);
-        series = CountSeries(outFileName);
-        (total, dist) = GetSplit(m, series);
-        (cleanupFirst, cleanupSecond, amount) = AddSeries(total - series, outFileName);
-        SplitSeries(outFileName, fileNames, dist);
-
-        int outIdx = m - 1;
-        while (total > 1)
-        {
-            MergeSeriesNew(fileNames, outIdx);
-            outIdx = UpdateDist(ref dist);
-            total = dist.Sum();
-        }
-        CopyData(fileNames[Array.IndexOf(dist, 1)], outFileName);
-        CleanUp(cleanupFirst, cleanupSecond, amount, outFileName);
-    }
-
     static void CopyData(string inFileName, string outFileName)
     {
         File.WriteAllText(outFileName, "");
@@ -229,7 +284,7 @@ class Program
         inFile.Close();
     }
 
-    static void MergeSeriesNew(string[] fileNames, int outIdx) 
+    static void MergeSeries(string[] fileNames, int outIdx) 
     {
         int m = fileNames.Length;
         StreamReader[] inFiles = new StreamReader[m - 1];
@@ -349,5 +404,4 @@ class Program
 
         return outIdx;
     }
-    #endregion
 }
