@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Xml;
 
 class Program
 {
@@ -255,7 +254,7 @@ class Program
         return (total, dist);
     }
 
-    static void SplitSeries(string inFileName, string[] fileNames, int[] dist) // FIX IT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    static void SplitSeries(string inFileName, string[] fileNames, int[] dist)
     {
         int n = dist.Length - 1;
         StreamReader inFile = new StreamReader(inFileName);
