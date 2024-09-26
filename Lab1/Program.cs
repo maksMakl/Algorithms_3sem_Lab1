@@ -41,6 +41,11 @@ class Program
             return 1;
         }
 
+        if (!Directory.Exists(Directory.GetCurrentDirectory() + "\\helper_files"))
+        {
+            Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\helper_files");
+        }
+
         Stopwatch watch = new Stopwatch();
         watch.Start();
         SortFile(args[0], m);
@@ -80,7 +85,7 @@ class Program
 
         for (int i = 0; i < m; i++)
         {
-            fileNames[i] = String.Concat("B", i + 1, ".txt");
+            fileNames[i] = String.Concat("helper_files\\B", i + 1, ".txt");
         }
 
         CopyData(inFileName, outFileName);
@@ -268,7 +273,7 @@ class Program
 
             for (int j = 0; j < dist[i]; j++)
             {
-                int prev = -1;
+                int prev = int.MinValue;
                 while (num != null && prev <= int.Parse(num))
                 {
                     outFile.WriteLine(num);
@@ -285,9 +290,10 @@ class Program
 
     static void MergeSeries(string[] fileNames, int outIdx) 
     {
+        File.WriteAllText(fileNames[outIdx], "");
         int m = fileNames.Length;
         StreamReader[] inFiles = new StreamReader[m - 1];
-        StreamWriter outFile = null;
+        StreamWriter outFile = new StreamWriter(fileNames[outIdx]);
         string[] nums = new string[m - 1];
         
 
@@ -300,11 +306,6 @@ class Program
                 nums[k] = inFiles[k].ReadLine();
                 k++;
             }
-            else 
-            {
-                File.WriteAllText(fileNames[i], "");
-                outFile = new StreamWriter(fileNames[i]);
-            }
         }
 
 
@@ -316,7 +317,7 @@ class Program
             for (int i = 0; i < m - 1; i++)
             {
                 blockEnded[i] = false;
-                prev[i] = -1;
+                prev[i] = int.MinValue;
             }
 
 
