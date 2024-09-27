@@ -6,9 +6,9 @@ class Program
 
     static int Main(string[] args)
     {
-        if (args.Length != 2)
+        if (args.Length != 3)
         {
-            Console.WriteLine("Usage: {0} <filename> <number of files used in sorting>", Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName));
+            Console.WriteLine("Usage: {0} <filename> <number of files used in sorting> <modified or basic(m/b)>", Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName));
             return 1;
         }
 
@@ -25,7 +25,7 @@ class Program
         }
         catch (FormatException)
         {
-            Console.WriteLine("Usage: {0} <filename> <number of files used in sorting>");
+            Console.WriteLine("Usage: {0} <filename> <number of files used in sorting> <modified or basic(m/b)>", Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName));
             return 1;
         }
 
@@ -41,6 +41,15 @@ class Program
             return 1;
         }
 
+        string version = args[2];
+        if (version != "m" && version != "b")
+        {
+            Console.WriteLine("Usage: {0} <filename> <number of files used in sorting> <modified or basic(m/b)>", Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName));
+            return 1;
+        }
+
+        bool modified = version == "m";
+
         if (!Directory.Exists(Directory.GetCurrentDirectory() + "\\helper_files"))
         {
             Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\helper_files");
@@ -48,7 +57,7 @@ class Program
 
         Stopwatch watch = new Stopwatch();
         watch.Start();
-        SortFile(args[0], m);
+        SortFile(args[0], m, modified);
         watch.Stop();
         Console.WriteLine(watch.ElapsedMilliseconds / 1000.0 + " seconds");
 
@@ -75,7 +84,7 @@ class Program
         return true;
     }
 
-    static void SortFile(string inFileName, int m)
+    static void SortFile(string inFileName, int m, bool modified)
     {
         int series;
         int total;
@@ -89,7 +98,7 @@ class Program
         }
 
         CopyData(inFileName, outFileName);
-        Preprocess(outFileName);
+        if (modified) Preprocess(outFileName);
         series = CountSeries(outFileName);
         (total, dist) = GetSplit(m, series);
         (cleanupFirst, cleanupSecond, amount) = AddSeries(total - series, outFileName);
